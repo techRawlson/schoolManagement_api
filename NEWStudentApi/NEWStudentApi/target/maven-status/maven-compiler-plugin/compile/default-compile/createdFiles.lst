@@ -1,0 +1,9 @@
+NEWStudentApi\Entities\Student.class
+NEWStudentApi\Entities\ClassName.class
+NEWStudentApi\Services\StudentService.class
+NEWStudentApi\Controller\StudentController.class
+NEWStudentApi\Services\ClassService.class
+NEWStudentApi\Repo\ClassRepository.class
+NEWStudentApi\Config\CorsConfig.class
+NEWStudentApi\Repo\StudentRepository.class
+NEWStudentApi\NewStudentApiApplication.class
