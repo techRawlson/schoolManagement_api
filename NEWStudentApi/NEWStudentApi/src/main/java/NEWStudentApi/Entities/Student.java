@@ -7,6 +7,7 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -27,14 +28,15 @@ public class Student {
     private String className;
     private char section;
     private int admissionYear;
-    private LocalDate dob;
+    private String dob;
     private String category;
     private String email;
     private int rollNumber;
-
+    private int session;
     private Long enrollmentNumber;
 
-    private String profilePicture;
+    @OneToMany(mappedBy = "student")
+    private List<StudentImage> images;
 
 
 
@@ -57,7 +59,7 @@ public class Student {
 //        this.fathersName = fathersName;
 //    }
     public Student(String name, String fathersName, String sex, Long mobile, String address, String className,
-                   char section, int admissionYear, LocalDate dob, String category, String email,
+                   char section, int admissionYear, String dob, String category, String email,
                    int rollNumber, Long enrollmentNumber) {
         this.name = name;
         this.fathersName = fathersName;
@@ -72,5 +74,6 @@ public class Student {
         this.email = email;
         this.rollNumber = rollNumber;
         this.enrollmentNumber = enrollmentNumber;
+
     }
 }

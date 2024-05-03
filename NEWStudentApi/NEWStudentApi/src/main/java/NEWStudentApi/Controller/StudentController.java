@@ -2,26 +2,24 @@ package NEWStudentApi.Controller;
 
 import NEWStudentApi.Entities.ClassName;
 import NEWStudentApi.Entities.Student;
+import NEWStudentApi.Entities.StudentDTO;
 import NEWStudentApi.Repo.ClassRepository;
 import NEWStudentApi.Repo.StudentRepository;
 import NEWStudentApi.Services.ClassService;
 import NEWStudentApi.Services.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.IOException;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -31,7 +29,7 @@ public class StudentController {
     private StudentRepository studentRepository;
     @Autowired
     private StudentService studentService;
-    private static final String IMAGE_UPLOAD_DIR = "C:\\Users\\HP\\Desktop\\New student\\image";
+    private static final String IMAGE_UPLOAD_DIR = "C:\\Users\\HP\\Desktop\\git FOlders\\New Student Git\\MicroServices\\New student\\image";
 
 
 
@@ -87,59 +85,101 @@ public class StudentController {
 //        }
 //    }
 
-    @PostMapping("/create-student")
-    public Student createStudent(@RequestParam("name") String name,
-                                 @RequestParam("fathersName") String fathersName,
-                                 @RequestParam("sex") String sex,
-                                 @RequestParam("mobile") Long mobile,
-                                 @RequestParam("address") String address,
-                                 @RequestParam("className") String className,
-                                 @RequestParam("section") char section,
-                                 @RequestParam("admissionYear") int admissionYear,
-                                 @RequestParam("dob") LocalDate dob,
-                                 @RequestParam("category") String category,
-                                 @RequestParam("email") String email,
-                                 @RequestParam("rollNumber") int rollNumber,
-                                 @RequestParam("enrollmentNumber") Long enrollmentNumber,
-                                 @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture) throws IOException {
+//    @PostMapping("/create-student")
+//    public ResponseEntity<?> createStudent(@RequestParam(value = "name", required = true) String name,
+//                                           @RequestParam("fathersName") String fathersName, @RequestParam("sex") String sex,
+//                                           @RequestParam("mobile") Long mobile, @RequestParam("address") String address,
+//                                           @RequestParam("className") String className, @RequestParam("section") char section,
+//                                           @RequestParam("admissionYear") int admissionYear, @RequestParam("dob") String dob,
+//                                           @RequestParam("category") String category, @RequestParam("email") String email,
+//                                           @RequestParam("rollNumber") int rollNumber, @RequestParam("enrollmentNumber") Long enrollmentNumber,
+//                                           @RequestParam("session") int session) throws IOException {
+//
+//        if (name == null || name.isEmpty()) {
+//            return ResponseEntity.badRequest().body("Student name is required");
+//        }
+//
+//        // Check if a student with the same name, class, section, and roll number already exists
+//        if (studentService.isDuplicateStudent(name, className, section, rollNumber)) {
+//            return ResponseEntity.badRequest().body("A student with the same name, class, section, and roll number already exists");
+//        }
+//
+//        // Create the student object
+//        Student student = new Student();
+//        student.setName(name);
+//        student.setFathersName(fathersName);
+//        student.setSex(sex);
+//        student.setMobile(mobile);
+//        student.setAddress(address);
+//        student.setClassName(className);
+//        student.setSection(section);
+//        student.setAdmissionYear(admissionYear);
+//        student.setDob(dob);
+//        student.setCategory(category);
+//        student.setEmail(email);
+//        student.setRollNumber(rollNumber);
+//        student.setEnrollmentNumber(enrollmentNumber);
+//        student.setSession(session);
+//
+//        student = studentRepository.save(student);
+//
+//        // Return the saved student object
+//        return ResponseEntity.ok(student);
+//    }
 
-        // Save the image if provided
-        String profilePictureName = null;
-        if (profilePicture != null && !profilePicture.isEmpty()) {
-            profilePictureName = profilePicture.getOriginalFilename();
-            byte[] bytes = profilePicture.getBytes();
-            Path path = Paths.get(IMAGE_UPLOAD_DIR + "\\" + profilePictureName);
-            Files.write(path, bytes);
-        }
-
-        // Create the student object
-        Student student = new Student();
-        student.setName(name);
-        student.setFathersName(fathersName);
-        student.setSex(sex);
-        student.setMobile(mobile);
-        student.setAddress(address);
-        student.setClassName(className);
-        student.setSection(section);
-        student.setAdmissionYear(admissionYear);
-        student.setDob(dob);
-        student.setCategory(category);
-        student.setEmail(email);
-        student.setRollNumber(rollNumber);
-        student.setEnrollmentNumber(enrollmentNumber);
-        student.setProfilePicture(profilePictureName);
-
-        student=studentRepository.save(student);
-
-        // Save the student object to the database or perform any other necessary operations
-        // studentRepository.save(student);
-
-        return student;
-    }
 
     @GetMapping("/savedData")
-    public List<Student> getAllStudents(){
-        return studentRepository.findAll();
+    public ResponseEntity<List<StudentDTO>> getAllStudents() {
+        List<StudentDTO> students = studentService.getAllStudents().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(students, HttpStatus.OK);
+    }
+    @GetMapping("/{studentId}")
+    public ResponseEntity<StudentDTO> getStudentData(@PathVariable Long studentId) {
+        Student student = studentService.getStudentById(studentId);
+        if (student != null) {
+            StudentDTO studentDTO = StudentDTO.builder()
+                    .id(student.getId())
+                    .name(student.getName())
+                    .fathersName(student.getFathersName())
+                    .sex(student.getSex())
+                    .mobile(student.getMobile())
+                    .address(student.getAddress())
+                    .className(student.getClassName())
+                    .section(student.getSection())
+                    .admissionYear(student.getAdmissionYear())
+                    .dob(student.getDob())
+                    .category(student.getCategory())
+                    .email(student.getEmail())
+                    .rollNumber(student.getRollNumber())
+                    .session(student.getSession())
+                    .enrollmentNumber(student.getEnrollmentNumber())
+                    .build();
+            return new ResponseEntity<>(studentDTO, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    private StudentDTO convertToDto(Student student) {
+        return new StudentDTO(
+                student.getId(),
+                student.getName(),
+                student.getFathersName(),
+                student.getSex(),
+                student.getMobile(),
+                student.getAddress(),
+                student.getClassName(),
+                student.getSection(),
+                student.getAdmissionYear(),
+                student.getDob(),
+                student.getCategory(),
+                student.getEmail(),
+                student.getRollNumber(),
+                student.getSession(),
+                student.getEnrollmentNumber()
+        );
     }
 
     //    @GetMapping("/image/{studentId}")
@@ -168,146 +208,127 @@ public class StudentController {
 //            return ResponseEntity.notFound().build();
 //        }
 //    }
-    @GetMapping("/image/{studentId}")
-    public ResponseEntity<byte[]> getImageByStudentId(@PathVariable("studentId") Long studentId) {
-        // Fetch the student from the database using the student ID
-        // Assuming studentRepository is autowired
-        Optional<Student> optionalStudent = studentRepository.findById(studentId);
-        if (optionalStudent.isPresent()) {
-            Student student = optionalStudent.get();
-            String imageName = student.getProfilePicture();
-            Path imagePath = Paths.get(IMAGE_UPLOAD_DIR, imageName);
 
-            try {
-                // Check if the image file exists
-                if (Files.exists(imagePath)) {
-                    // Read the image bytes from the file
-                    byte[] imageBytes = Files.readAllBytes(imagePath);
-                    // Return the image bytes with appropriate headers
-                    return ResponseEntity.ok()
-                            .contentType(MediaType.IMAGE_JPEG) // Adjust content type if necessary
-                            .body(imageBytes);
-                } else {
-                    // Image file not found
-                    return ResponseEntity.notFound().build();
-                }
-            } catch (IOException e) {
-                // Handle file read error
-                e.printStackTrace();
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-        } else {
-            // Student not found
-            return ResponseEntity.notFound().build();
-        }
-    }
 
-    @GetMapping("/{studentId}")
-    public ResponseEntity<Student> getStudentById(@PathVariable("studentId") Long studentId) {
-        Optional<Student> optionalStudent = studentRepository.findById(studentId);
-        if (optionalStudent.isPresent()) {
-            Student student = optionalStudent.get();
-            return ResponseEntity.ok().body(student);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
+//    @GetMapping("/{studentId}")
+//    public ResponseEntity<Student> getStudentById(@PathVariable("studentId") Long studentId) {
+//        Optional<Student> optionalStudent = studentRepository.findById(studentId);
+//        if (optionalStudent.isPresent()) {
+//            Student student = optionalStudent.get();
+//            return ResponseEntity.ok().body(student);
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
 
     @PutMapping("update-student/{studentId}")
-    public ResponseEntity<Student> updateStudentById(@PathVariable("studentId") Long studentId,
-                                                     @RequestParam(value = "image", required = false) MultipartFile updatedImage,
-                                                     @RequestParam(value = "name", required = false) String name,
-                                                     @RequestParam(value = "fathersName", required = false) String fathersName,
-                                                     @RequestParam(value = "sex", required = false) String sex,
-                                                     @RequestParam(value = "mobile", required = false) Long mobile,
-                                                     @RequestParam(value = "address", required = false) String address,
-                                                     @RequestParam(value = "className", required = false) String className,
-                                                     @RequestParam(value = "section", required = false) Character section,
-                                                     @RequestParam(value = "admissionYear", required = false) Integer admissionYear,
-                                                     @RequestParam(value = "dob", required = false) LocalDate dob,
-                                                     @RequestParam(value = "category", required = false) String category,
-                                                     @RequestParam(value = "email", required = false) String email,
-                                                     @RequestParam(value = "rollNumber", required = false) Integer rollNumber,
-                                                     @RequestParam(value = "enrollmentNumber", required = false) Long enrollmentNumber) {
-        Optional<Student> optionalStudent = studentRepository.findById(studentId);
-        if (optionalStudent.isPresent()) {
-            Student existingStudent = optionalStudent.get();
-
-            // Update the image if provided
-            if (updatedImage != null && !updatedImage.isEmpty()) {
-                try {
-                    String imageName = updatedImage.getOriginalFilename();
-                    byte[] bytes = updatedImage.getBytes();
-                    Path path = Paths.get(IMAGE_UPLOAD_DIR + "\\" + imageName);
-                    Files.write(path, bytes);
-                    // Update the student's profile picture
-                    existingStudent.setProfilePicture(imageName);
-                } catch (IOException e) {
-                    // Handle file write error
-                    e.printStackTrace();
-                    return ResponseEntity.badRequest().build();
-                }
-            }
-
-            // Update other student fields if provided
-            if (name != null) {
-                existingStudent.setName(name);
-            }
-            if (fathersName != null) {
-                existingStudent.setFathersName(fathersName);
-            }
-            if (sex != null) {
-                existingStudent.setSex(sex);
-            }
-            if (mobile != null) {
-                existingStudent.setMobile(mobile);
-            }
-            if (address != null) {
-                existingStudent.setAddress(address);
-            }
-            if (className != null) {
-                existingStudent.setClassName(className);
-            }
-            if (section !=null) {
-                existingStudent.setSection(section);
-            }
-            if (admissionYear != null) {
-                existingStudent.setAdmissionYear(admissionYear);
-            }
-            if (dob != null) {
-                existingStudent.setDob(dob);
-            }
-            if (category != null) {
-                existingStudent.setCategory(category);
-            }
-            if (email != null) {
-                existingStudent.setEmail(email);
-            }
-            if (rollNumber != null) {
-                existingStudent.setRollNumber(rollNumber);
-            }
-            if (enrollmentNumber != null) {
-                existingStudent.setEnrollmentNumber(enrollmentNumber);
-            }
-
-            // Save the updated student object to the database
-            Student savedStudent = studentRepository.save(existingStudent);
-            return ResponseEntity.ok().body(savedStudent);
-        } else {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> updateStudentDetails(@PathVariable Long studentId, @RequestBody Student updatedStudent) {
+        // Ensure that the studentId in the URL matches the ID of the updatedStudent
+        if (!studentId.equals(updatedStudent.getId())) {
+            return ResponseEntity.badRequest().body("Student ID in URL does not match ID in request body");
         }
-    }
 
-
-    @DeleteMapping("/{studentId}")
-    public ResponseEntity<String> deleteStudentById(@PathVariable Long studentId) {
+        // Call the service method to update student details
         try {
-            studentService.deleteStudentById(studentId);
-            return ResponseEntity.status(HttpStatus.OK).body("Student with ID " + studentId + " deleted successfully");
+            Optional<Student> updated = studentService.updateStudentDetails(studentId, updatedStudent);
+            if (updated.isPresent()) { // Check if the Optional contains a value
+                return ResponseEntity.ok(updated.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete student: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update student details");
         }
     }
+
+//    public ResponseEntity<Student> updateStudentById(@PathVariable("studentId") Long studentId,
+//                                                     @RequestParam(value = "name", required = false) String name,
+//                                                     @RequestParam(value = "fathersName", required = false) String fathersName,
+//                                                     @RequestParam(value = "sex", required = false) String sex,
+//                                                     @RequestParam(value = "mobile", required = false) Long mobile,
+//                                                     @RequestParam(value = "address", required = false) String address,
+//                                                     @RequestParam(value = "className", required = false) String className,
+//                                                     @RequestParam(value = "section", required = false) Character section,
+//                                                     @RequestParam(value = "admissionYear", required = false) Integer admissionYear,
+//                                                     @RequestParam(value = "dob", required = false) String dob,
+//                                                     @RequestParam(value = "category", required = false) String category,
+//                                                     @RequestParam(value = "email", required = false) String email,
+//                                                     @RequestParam(value = "rollNumber", required = false) Integer rollNumber,
+//                                                     @RequestParam(value = "session", required = false) Integer session,
+//                                                     @RequestParam(value = "enrollmentNumber", required = false) Long enrollmentNumber) {
+//        Optional<Student> optionalStudent = studentRepository.findById(studentId);
+//        if (optionalStudent.isPresent()) {
+//            Student existingStudent = optionalStudent.get();
+//
+//            // Update the image if provided
+//
+//
+//            // Update other student fields if provided
+//            if (name != null) {
+//                existingStudent.setName(name);
+//            }
+//            if (fathersName != null) {
+//                existingStudent.setFathersName(fathersName);
+//            }
+//            if (sex != null) {
+//                existingStudent.setSex(sex);
+//            }
+//            if (mobile != null) {
+//                existingStudent.setMobile(mobile);
+//            }
+//            if (address != null) {
+//                existingStudent.setAddress(address);
+//            }
+//            if (className != null) {
+//                existingStudent.setClassName(className);
+//            }
+//            if (section !=null) {
+//                existingStudent.setSection(section);
+//            }
+//            if (admissionYear != null) {
+//                existingStudent.setAdmissionYear(admissionYear);
+//            }
+//            if (dob != null) {
+//                existingStudent.setDob(dob);
+//            }
+//            if (category != null) {
+//                existingStudent.setCategory(category);
+//            }
+//            if (email != null) {
+//                existingStudent.setEmail(email);
+//            }
+//            if (rollNumber != null) {
+//                existingStudent.setRollNumber(rollNumber);
+//            }
+//            if (session != null) {
+//                existingStudent.setSession(session);
+//            }
+//
+//            if (enrollmentNumber != null) {
+//                existingStudent.setEnrollmentNumber(enrollmentNumber);
+//            }
+//
+//            // Save the updated student object to the database
+//            Student savedStudent = studentRepository.save(existingStudent);
+//            return ResponseEntity.ok().body(savedStudent);
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteStudentById(@PathVariable Long id) {
+        try {
+            studentService.deleteStudentById(id);
+            return ResponseEntity.ok("Student with ID " + id + " deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to delete student with ID " + id + ": " + e.getMessage());
+        }
+    }
+
+
     @PostMapping("/bulk")
     public ResponseEntity<String> uploadBulkStudents(@RequestBody List<Student> students) {
         try {
@@ -376,6 +397,13 @@ public ResponseEntity<?> createClass(@RequestParam("classname") String name, @Re
     public String uploadExcelFile(@RequestParam("file") MultipartFile file) {
         return studentService.processExcelFile(file);
     }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<String> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String message = "Parameter '" + ex.getName() + "' with value '" + ex.getValue() +
+                "' could not be converted to type '" + ex.getRequiredType().getSimpleName() + "'";
+        return ResponseEntity.badRequest().body(message);
+    }
+
 
 }
 

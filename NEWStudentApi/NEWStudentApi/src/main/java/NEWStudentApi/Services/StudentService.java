@@ -1,10 +1,13 @@
 package NEWStudentApi.Services;
 import NEWStudentApi.Entities.Student;
+import NEWStudentApi.Entities.StudentDTO;
+import NEWStudentApi.Repo.StudentImageRepository;
 import NEWStudentApi.Repo.StudentRepository;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -12,17 +15,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.persistence.NonUniqueResultException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class StudentService {
 
     private final StudentRepository studentRepository;
-
+    @Autowired
+    private StudentImageRepository studentImageRepository;
 
     @Autowired
     public StudentService(StudentRepository studentRepository) {
@@ -36,6 +42,9 @@ public class StudentService {
     public void createStudent(Student student) {
         // Add any additional business logic if needed
         studentRepository.save(student); // Save the student object to the database
+    }
+    public Student getStudentById(Long studentId) {
+        return studentRepository.findById(studentId).orElse(null);
     }
     public void saveBulkStudents(List<Student> students) {
         // Convert DTOs to entities and save them in bulk
@@ -63,14 +72,15 @@ public class StudentService {
         student.setEnrollmentNumber(dto.getEnrollmentNumber());
         return student;
     }
-    public void deleteStudentById(Long studentId) {
-        studentRepository.deleteById(studentId);
-    }
+
     public Student findById(Long id) {
         return studentRepository.findById(id).orElse(null);
     }
     public Student save(Student student) {
         return studentRepository.save(student);
+    }
+    public List<Student> getAllStudents() {
+        return studentRepository.findAll();
     }
     @Value("${api.endpoint.url}")
     private String apiUrl; // This should be defined in your application.properties or application.yml
@@ -101,7 +111,7 @@ public class StudentService {
                 String className = row.getCell(5).getStringCellValue();
                 char section = row.getCell(6).getStringCellValue().charAt(0); // Assuming section is a single character
                 int admissionYear = (int) row.getCell(7).getNumericCellValue();
-                LocalDate dob = row.getCell(8).getLocalDateTimeCellValue().toLocalDate(); // Assuming date of birth is in date format
+                String dob = row.getCell(8).getStringCellValue(); // Assuming date of birth is in date format
                 String category = row.getCell(9).getStringCellValue();
                 String email = row.getCell(10).getStringCellValue();
                 int rollNumber = (int) row.getCell(11).getNumericCellValue();
@@ -137,6 +147,46 @@ public class StudentService {
             return "Failed to process Excel file.";
         }
     }
+    public Optional<Student> updateStudentDetails(Long studentId, Student updatedStudent) {
+        Optional<Student> optionalStudent = studentRepository.findById(studentId);
+        if (optionalStudent.isPresent()) {
+            Student existingStudent = optionalStudent.get();
+            // Update only the fields provided by the user
+            // and leave the other fields unchanged
+            BeanUtils.copyProperties(updatedStudent, existingStudent, "id", "images");
+            return Optional.of(studentRepository.save(existingStudent));
+        } else {
+            // Student with the specified ID does not exist
+            return Optional.empty();
+        }
+    }
+    public boolean isDuplicateStudent(String name, String className, char section, int rollNumber) {
+        try {
+            // Perform the query to check if a student with the same details exists
+            // If the query returns more than one result, it means there are duplicates
+            return studentRepository.countByDetails(name, className, section, rollNumber) > 1;
+        } catch (NonUniqueResultException ex) {
+            // Handle the exception here, such as logging an error message
+            ex.printStackTrace();
+            return true; // Return true to indicate that duplicates exist
+        }
+    }
+
+
+    public void deleteStudentById(Long studentId) {
+        // Find the student by ID
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
+
+        // Delete associated images
+        if (student.getImages() != null && !student.getImages().isEmpty()) {
+            studentImageRepository.deleteAll(student.getImages());
+        }
+
+        // Delete the student
+        studentRepository.delete(student);
+    }
+
 }
 
 
